@@ -1,0 +1,14 @@
+# Dedicated env for rule convert_manta_inversions: Manta's convertInversion.py
+# is Python 2 only (confirmed by reading the actual source -- it opens the
+# VCF in binary mode and does byte/str operations that raise TypeError
+# under Python 3), and needs a samtools binary for its one `samtools faidx`
+# call. Kept separate from envs/svmerge.yml (which is Python 3, for pysam
+# in standardize_sv.py etc.) since conda envs pin a single Python major
+# version.
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - python=2.7
+  - samtools
+  - htslib

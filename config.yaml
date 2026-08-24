@@ -1,0 +1,39 @@
+# --- Input ---
+# TSV with columns: sample_id  manta_vcf  dysgu_vcf
+# (paths may be relative or absolute; .vcf or .vcf.gz both fine)
+samples_tsv: "/software/projects/pawsey0933/SVmerge/samples_giraffe.tsv"
+
+# Reference FASTA (must be indexed: reference.fasta.fai present alongside)
+#reference: "/software/projects/pawsey0933/sv/references/hg38_masked/Homo_sapiens_assembly38_masked.fasta"
+reference: "/software/projects/pawsey0933/manta/hprc-v2.0-mc-grch38.fa"
+
+outdir: "/scratch/pawsey0933/cfolland/SVmerge/results_giraffe_hg38"
+
+# --- Stage 0.5: SV representation standardization (scripts/standardize_sv.py) ---
+# DEL/DUP/INV at or above this size (bp) are rewritten to symbolic ALT
+# (<DEL>/<DUP>/<INV>) with consistent SVLEN/END, for compatibility with
+# annotation tools (AnnotSV, VEP, SVAFotate) that expect symbolic SVs.
+# INS is always kept sequence-resolved regardless of this threshold, since
+# truvari can't reference-resolve novel insertion sequence for symbolic
+# <INS> and would lose sequence-similarity scoring.
+symbolic_threshold: 50
+
+# --- Stage 1: per-sample Manta+Dysgu merge ---
+# svdb --merge --data_profile sample (strict; same individual, different callers)
+stage1_bnd_distance: 300      # max distance (bp) between precise breakpoints
+stage1_overlap: 0.5           # min reciprocal overlap fraction
+
+# --- Stage 2: cohort-level cross-sample merge ---
+# svdb --merge --data_profile cohort (permissive; cross-individual)
+stage2_bnd_distance: 500
+stage2_overlap: 0.5
+
+# --- QC filtering ---
+max_missing_fraction: 0.10    # drop sites with F_MISSING above this
+min_maf: 0.0                  # set > 0 to also drop sites below this MAF
+
+# --- Parallelization ---
+# Contigs to scatter cohort-merge + QC steps across. Adjust to your reference.
+contigs: ["chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10",
+          "chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19",
+          "chr20","chr21","chr22","chrX","chrY"]
