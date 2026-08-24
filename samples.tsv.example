@@ -1,0 +1,2 @@
+sample_id	manta_vcf	dysgu_vcf
+hg002	/scratch/pawsey0933/cfolland/manta/results/HG002.bwamem_grch38.manta.diploid_sv.vcf.gz	/scratch/pawsey0933/cfolland/dysgu/hg38/HG002.grch38.bwamem.dysgu.vcf
