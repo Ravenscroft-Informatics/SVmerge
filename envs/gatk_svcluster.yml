@@ -1,0 +1,10 @@
+# Dedicated env for rule svcluster_depth_merge (GATK SVCluster). GATK4 is a
+# JVM tool with no relation to the python2/samtools env used for Manta's
+# convertInversion.py, or the python3/pysam env used everywhere else --
+# kept separate for the same reason those are: minimal, single-purpose,
+# reproducible environments per tool rather than one large grab-bag env.
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - gatk4
