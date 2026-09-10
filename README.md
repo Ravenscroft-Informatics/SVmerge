@@ -26,24 +26,24 @@ Then:
     -> filter (FILTER=PASS, F_MISSING, AF) -> cohort.final.vcf.gz
 ```
 
-Stage 3.5 (optional, enable_gcnv: true): depth-caller integration gCNV calling itself runs OUTSIDE this pipeline (CollectReadCounts -> DetermineGermlineContigPloidy -> GermlineCNVCaller -> Postprocess GermlineCNVCalls), since it needs BAM/CRAM access and calls jointly across the whole cohort at once, not per-sample like Manta/Dysgu.
+**Stage 3.5 (optional, enable_gcnv: true): depth-caller integration** 
+- gCNV calling itself runs OUTSIDE this pipeline since it needs BAM/CRAM access and calls jointly across the whole cohort at once, not per-sample like `Manta`/`Dysgu`.
+- Use (`cnv_snakemake`)[https://github.com/RAVING-Informatics/cnv_snakemake] which performs`CollectReadCounts` -> `DetermineGermlineContigPloidy` -> `GermlineCNVCaller` -> Postprocess `GermlineCNVCalls`
 
-Given each sample's raw PostprocessGermlineCNVCalls VCF:
+Given each sample's raw `PostprocessGermlineCNVCalls` VCF:
   build a ploidy table from samples.tsv's "sex" column
-    -> standardize each sample's gCNV VCF (add INFO/ALGORITHMS=depth, FORMAT/ECN)
-    -> split the concatenated cohort VCF into DEL/DUP vs everything else (gCNV can only corroborate copy-number types)
-    -> GATK SVCluster reconciles the DEL/DUP split against all samples' standardized gCNV VCFs
-    -> recombine with the untouched non-DEL/DUP records
+    -> standardize each sample's gCNV VCF (add `INFO/ALGORITHMS=depth`, `FORMAT/ECN`)
+    -> split the concatenated cohort VCF into `DEL`/`DUP` vs everything else (gCNV can only corroborate copy-number types)
+    -> `GATK SVCluster` reconciles the `DEL`/`DUP` split against all samples' standardized gCNV VCFs
+    -> recombine with the untouched non-`DEL`/`DUP` records
 
 ## Requirements
 
+Install `snakemake` using `conda`:
+
 ```bash
-pip install snakemake pysam pandas svdb
-# bcftools + tabix (htslib) — via conda/mamba or your package manager
+conda create -n svmerge -c bioconda snakemake=8.30.0
 ```
-
-Everything here was tested with `svdb==2.12.0`, `bcftools==1.19`, `snakemake` (8.x), `pysam==0.24.0`.
-
 Three conda envs are used, activated per-rule via Snakemake's `conda:` directive (run with `snakemake --use-conda ...`):
 
 - `envs/svmerge.yml` — Python 3 + pysam + bcftools/tabix. Used by essentially every rule (`standardize_sv.py`, `add_caller_support.py`, `tier_cohort.py`, all the `bcftools`/`svdb` steps).
@@ -88,4 +88,22 @@ If you're using Stage 3.5 (`enable_gcnv: true`), two more columns are required:
    # or, for a cluster: snakemake -s Snakefile --use-conda --profile <your-cluster-profile>
    ```
 
-Output: `results/cohort/cohort.final.vcf.gz`
+## Outputs
+- `results/cohort/cohort.final.vcf.gz` 
+
+### Filter options
+Use bcftools to filter for variants with support from multiple callers:
+
+```
+# calls with support from both PESR callers
+$ bcftools view -H -i 'INFO/N_BOTH==1' cohort.final.vcf.gz > cohort.final.both.vcf.gz
+
+# calls with support from both PESR callers and depth 
+$ bcftools view -H -i 'INFO/ALGORITHMS=="depth" && INFO/ALGORITHMS=="manta" && INFO/ALGORITHMS=="dysgu"' cohort.final.vcf.gz > cohort.final.both.depth.vcf.gz
+
+# calls with support from at least one PESR and depth
+$ bcftools view -H -i 'INFO/ALGORITHMS=="depth" && (INFO/ALGORITHMS=="manta" || INFO/ALGORITHMS=="dysgu")' cohort.final.pesr.depth.vcf.gz 
+```
+
+## Running on cluster
+- Use cluster profile config: `cluster_config.yaml`
